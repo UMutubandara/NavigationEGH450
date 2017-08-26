@@ -9,15 +9,20 @@ class Navigation():
 
 	def __init__(self):
 		#set up publisher 
-		self.pub = rospy.Publisher('/newgoal', PoseStamped, queue_size =10)
+		self.pub = rospy.Publisher('/setpoint_position', PoseStamped, queue_size =10)
 		self.timer = rospy.Timer(rospy.Duration(0.1), self.pub_callback)
 
 		#set up test waypoints and waypoint counter
-		self.waypoint = [[0 , 0 , 1.5],[0 , 1 , 1.5],[1, 1, 1], [1,1,0]]
+		self.waypoint = [[0 , 0 , 0], 
+						[0 , 0 , 1.5], 
+						[1, 1, 1.5], 
+						[1, 1, 1], 
+						[0, 0, 1], 
+						[0 ,0 ,0 ]]
 		self.waypoint_counter = 0
 
 		# Set up the subscriber
-		self.sub_ping = rospy.Subscriber("/emulator/pose", PoseStamped, self.callback)
+		self.sub_ping = rospy.Subscriber("/local_position", PoseStamped, self.callback)
 
 	def pub_callback(self, event):
 		#print 'Timer called at ' + str(event.current_real)
@@ -26,10 +31,10 @@ class Navigation():
 		msg_out.pose.position.x = self.waypoint[self.waypoint_counter][0]
 		msg_out.pose.position.y = self.waypoint[self.waypoint_counter][1]
 		msg_out.pose.position.z = self.waypoint[self.waypoint_counter][2]
-		msg_out.pose.orientation.x = self.uav_pose.orientation.x
-		msg_out.pose.orientation.y = self.uav_pose.orientation.y
-		msg_out.pose.orientation.z = self.uav_pose.orientation.z
-		msg_out.pose.orientation.w = self.uav_pose.orientation.w
+		msg_out.pose.orientation.x = 0
+		msg_out.pose.orientation.y = 0
+		msg_out.pose.orientation.z = 0.701
+		msg_out.pose.orientation.w = 0.701
 
 
 		self.pub.publish(msg_out)
@@ -44,10 +49,17 @@ class Navigation():
 		# Copying for simplicity
 		self.uav_pose = msg.pose
 
-		self.distanceto = sqrt(((self.uav_pose.position.x - self.waypoint[self.waypoint_counter][0])**2)+((self.uav_pose.position.y - self.waypoint[self.waypoint_counter][1])**2)+((self.uav_pose.position.z - self.waypoint[self.waypoint_counter][2])**2))
+		
+		self.distanceto = np.sqrt(((self.uav_pose.position.x - self.waypoint[self.waypoint_counter][0])**2)+((self.uav_pose.position.y - 
+		self.waypoint[self.waypoint_counter][1])**2)+((self.uav_pose.position.z - self.waypoint[self.waypoint_counter][2])**2))
 
-		if (self.distanceto < 0.03) and (waypoint_counter < 3):
-			self.waypoint_counter += 1
+		rospy.loginfo(self.distanceto)
+
+		self.near_waypoint = 0.2
+
+
+		if (self.distanceto < self.near_waypoint) and (self.waypoint_counter < 5):
+		 	self.waypoint_counter += 1
 
 
 if __name__ == '__main__':
@@ -63,4 +75,3 @@ if __name__ == '__main__':
 		rospy.loginfo("Shutting down...")
 		nav.shutdown()
 		rospy.loginfo("Done!")
-    
