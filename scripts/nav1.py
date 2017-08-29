@@ -2,6 +2,7 @@ import rospy
 import tf.transformations
 import numpy as np
 import math
+import time
 from geometry_msgs.msg import PoseStamped
 
 
@@ -9,20 +10,21 @@ class Navigation():
 
 	def __init__(self):
 		#set up publisher 
-		self.pub = rospy.Publisher('/setpoint_position', PoseStamped, queue_size =10)
+		self.pub = rospy.Publisher('/mavros/setpoint_position/local', PoseStamped, queue_size =10)
 		self.timer = rospy.Timer(rospy.Duration(0.1), self.pub_callback)
 
 		#set up test waypoints and waypoint counter
 		self.waypoint = [[0 , 0 , 0], 
-						[0 , 0 , 1.5], 
-						[1, 1, 1.5], 
-						[1, 1, 1], 
-						[0, 0, 1], 
+						[0 , 0 , 2], 
+						[2, 2, 2], 
+						[2, -2, 2], 
+						[-2, 2, 2], 
+						[-2 ,-2 ,2 ],
 						[0 ,0 ,0 ]]
 		self.waypoint_counter = 0
 
 		# Set up the subscriber
-		self.sub_ping = rospy.Subscriber("/local_position", PoseStamped, self.callback)
+		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback)
 
 	def pub_callback(self, event):
 		#print 'Timer called at ' + str(event.current_real)
@@ -33,8 +35,8 @@ class Navigation():
 		msg_out.pose.position.z = self.waypoint[self.waypoint_counter][2]
 		msg_out.pose.orientation.x = 0
 		msg_out.pose.orientation.y = 0
-		msg_out.pose.orientation.z = 0.701
-		msg_out.pose.orientation.w = 0.701
+		msg_out.pose.orientation.z = 1
+		msg_out.pose.orientation.w = 1
 
 
 		self.pub.publish(msg_out)
@@ -58,8 +60,10 @@ class Navigation():
 		self.near_waypoint = 0.2
 
 
-		if (self.distanceto < self.near_waypoint) and (self.waypoint_counter < 5):
+		if (self.distanceto < self.near_waypoint) and (self.waypoint_counter < 6):
 		 	self.waypoint_counter += 1
+		 	time.sleep(5)
+
 
 
 if __name__ == '__main__':
