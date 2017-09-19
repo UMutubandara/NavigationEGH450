@@ -59,7 +59,7 @@ class Navigation():
 		self.distanceto = np.sqrt(((self.uav_pose.position.x - self.waypoint[self.waypoint_counter][0])**2)+((self.uav_pose.position.y - 
 		self.waypoint[self.waypoint_counter][1])**2)+((self.uav_pose.position.z - self.waypoint[self.waypoint_counter][2])**2))
 
-		if ((self.distanceto < self.near_waypoint) and (self.waypoint_counter < 6)):
+		if ((self.distanceto < self.near_waypoint) and (self.waypoint_counter < 2)):
 		 	self.waypoint_counter += 1
 		 	self.currentwp.position.x = self.waypoint[self.waypoint_counter][0]
 			self.currentwp.position.y = self.waypoint[self.waypoint_counter][1]
@@ -75,9 +75,9 @@ class Navigation():
 		self.eground = msg.data
 		#rospy.loginfo(msg.data)
 		if (self.eground > 2):
-			self.currentwp.position.x = 0#self.uav_pose.position.x
-			self.currentwp.position.y = 0#self.uav_pose.position.y
-			self.currentwp.position.z = 3
+			self.currentwp.position.x = self.uav_pose.position.x
+			self.currentwp.position.y = self.uav_pose.position.y
+			self.currentwp.position.z = 0.06
 
 		else:
 			self.currentwp.position.x = self.waypoint[self.waypoint_counter][0]
