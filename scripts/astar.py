@@ -22,8 +22,17 @@ class WaypontGen(object):
 
 	def og_sub(self, msg):
 		self.testgrid = msg.data
-		self.newarray = np.reshape(self.testgrid, (-1, 50))
+		self.resolution = msg.info.resolution
+		self.width = msg.info.width
+		self.height = msg.info.height
 
+		#Grid Resolution, height and width
+		rospy.loginfo(self.resolution)
+		rospy.loginfo(self.width)
+		rospy.loginfo(self.height)
+
+		#new array using height and width
+		self.newarray = np.reshape(self.testgrid, (-1, 50))
 		self.plot = np.array(self.newarray)
 		fig = plt.figure(figsize=(6, 6))
 
@@ -38,10 +47,7 @@ class WaypontGen(object):
 		#cax.patch.set_alpha(0)
 		cax.set_frame_on(False)
 		plt.show()
-		#plt.imshow(self.plot)
-		#rospy.loginfo(self.plot)
-
-
+		
 
 if __name__ == '__main__':
 	rospy.init_node('navnode', anonymous=True)
