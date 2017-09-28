@@ -46,14 +46,13 @@ class Navigation():
 
 	def shutdown(self):
 		# Unregister anything that needs it here
-		self.sub_ping.unregister()
-
+		self.sub_ping.unregister()	
 	def callback(self, msg):
 
 		# Copying for simplicity
 		self.uav_pose = msg.pose
 
-		
+		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback)
 		self.near_waypoint = 0.10
 
 		self.distanceto = np.sqrt(((self.uav_pose.position.x - self.waypoint[self.waypoint_counter][0])**2)+((self.uav_pose.position.y - 
