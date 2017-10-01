@@ -15,24 +15,20 @@ class Navigation():
 		self.msg_out= PoseStamped()
 		self.msg_out.header.frame_id = "world"
 		self.currentwp = Pose()
-		self.pub = rospy.Publisher('/mavros/setpoint_position/local', PoseStamped, queue_size =10)
+		self.pub = rospy.Publisher('/mavros/setpoint_position/local', PoseStamped, queue_size =10) #Next Waypoint
 		
 		self.timer = rospy.Timer(rospy.Duration(0.1), self.pub_callback)
 
 		#set up test waypoints and waypoint counter
 		self.waypoint = [[0 , 0 , 0], 
-						[0 , 0 , 2], 
-						[2, 2, 2], 
-						[2, -2, 2], 
-						[-2, 2, 2], 
-						[-2 ,-2 ,2 ],
-						[0 ,0 ,0 ]]
+						[0 , 0 , 2]]
 		self.waypoint_counter = 0
+		self.subwaypoint_counter =0
 		self.land = 0
 
 		# Set up the subscriber
-		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback)
-		self.sub_land = rospy.Subscriber("/land", Int8, self.ground)
+		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #current Pose position of the UAV
+		self.sub_land = rospy.Subscriber("/object_location", Int8, self.ground)
 
 	def pub_callback(self, event):
 		#print 'Timer called at ' + str(event.current_real)
@@ -55,10 +51,14 @@ class Navigation():
 		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback)
 		self.near_waypoint = 0.10
 
-		self.distanceto = np.sqrt(((self.uav_pose.position.x - self.waypoint[self.waypoint_counter][0])**2)+((self.uav_pose.position.y - 
-		self.waypoint[self.waypoint_counter][1])**2)+((self.uav_pose.position.z - self.waypoint[self.waypoint_counter][2])**2))
+		"""self.distanceto = np.sqrt(((self.uav_pose.position.x - self.waypoint[self.waypoint_counter][0])**2)+((self.uav_pose.position.y - 
+		self.waypoint[self.waypoint_counter][1])**2)+((self.uav_pose.position.z - self.waypoint[self.waypoint_counter][2])**2))"""
 
-		if ((self.distanceto < self.near_waypoint) and (self.waypoint_counter < 2)):
+
+		self.distanceto = np.sqrt(((self.uav_pose.position.x - self.currentwp.position.x)**2)+((self.uav_pose.position.y - 
+		self.currentwp.position.y)**2)+((self.uav_pose.position.z - self.currentwp.position.z)**2))
+
+		if ((self.distanceto < self.near_waypoint) and (self.waypoint_counter < 8)):
 		 	self.waypoint_counter += 1
 		 	self.currentwp.position.x = self.waypoint[self.waypoint_counter][0]
 			self.currentwp.position.y = self.waypoint[self.waypoint_counter][1]
@@ -72,20 +72,33 @@ class Navigation():
 	
 	def ground(self, msg):
 		self.eground = msg.data
-		#rospy.loginfo(msg.data)
-		if (self.eground > 2):
+		self.targetx = self.eground.x
+		self.targety = self.eground.y
+		self.targetz = self.eground.z
+		#call back for msg data from TAQ and set current wp to target based on the given distances
+		if ((self.targetx > 0 or self.targety > 0 or self.targetz > 0) and self.waypoint_counter < 8):
 			self.currentwp.position.x = self.uav_pose.position.x
 			self.currentwp.position.y = self.uav_pose.position.y
-			self.currentwp.position.z = 0.06
+			self.currentwp.position.z = 1
+			delay(5000)
 
-		else:
-			self.currentwp.position.x = self.waypoint[self.waypoint_counter][0]
-			self.currentwp.position.y = self.waypoint[self.waypoint_counter][1]
-			self.currentwp.position.z = self.waypoint[self.waypoint_counter][2]
-			self.currentwp.orientation.x = 0
-			self.currentwp.orientation.y = 0
-			self.currentwp.orientation.z = 1
-			self.currentwp.orientation.w = 1
+		elif ((self.targetx > 0 or self.targety > 0 or self.targetz > 0) and self.waypoint_counter > 8):
+			self.currentwp.position.x = self.uav_pose.position.x
+			self.currentwp.position.y = self.uav_pose.position.y
+			self.currentwp.position.z = 1.5
+			self.currentwp.orientation.x 
+			self.currentwp.orientation.y 
+			self.currentwp.orientation.z 
+			self.currentwp.orientation.w 
+			delay(5000)
+
+		self.currentwp.position.x = self.waypoint[self.waypoint_counter][0]
+		self.currentwp.position.y = self.waypoint[self.waypoint_counter][1]
+		self.currentwp.position.z = self.waypoint[self.waypoint_counter][2]
+		self.currentwp.orientation.x = 0
+		self.currentwp.orientation.y = 0
+		self.currentwp.orientation.z = 1
+		self.currentwp.orientation.w = 1
 
 
 if __name__ == '__main__':
