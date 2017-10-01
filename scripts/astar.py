@@ -67,36 +67,60 @@ class WaypontGen(object):
 		
 
 		#Grid Resolution, height and width
-		rospy.loginfo(self.resolution)
+		
 		#rospy.loginfo(self.width)
 		#rospy.loginfo(self.height)
 		
-
+		self.threshold = 3
 
 		#new array using height and width
 		self.newarray = np.reshape(self.testgrid, (-1, self.width))
 		self.plot = np.array(self.newarray)
-		rospy.loginfo(self.plot[12,40])
+		
 		fig = plt.figure(figsize=(10, 10))
 		#rospy.loginfo(self.plot)
-
-
+		self.subpoints = list()
+		for point in self.waypoints:
+			self.plot[point[0], point[1]] = 50
 		for i in range( 1, len(self.waypoints)):
-			found = False
-			if self.waypoints[i][1] - self.waypoints[i-1][1] == 0:
+			
+			"""if self.waypoints[i][1] - self.waypoints[i-1][1] == 0:
 				for x in range(self.waypoints[i-1][0] + 1, self.waypoints[i][0]):
 					if self.plot[x, self.waypoints[i][1]] == 100:
 						found = True
-						break
+						break"""
+
 			if self.waypoints[i][0] - self.waypoints[i-1][0] == 0:
+				m = 1 if self.waypoints[i][1] > self.waypoints[i-1][1] else -1
 				for y in range(self.waypoints[i-1][1] + 1, self.waypoints[i][1]):
-					if self.plot[self.waypoints[i][0], y] == 100:
-						found = True
+					found = False
+					for x in range(self.waypoints[i][0] - self.threshold, self.waypoints[i][0] + self.threshold + 1):
+						if self.plot[x, y] == 100:
+							found = True
+							break
+
+					#self.plot[self.waypoints[i][0], y] = 70
+					if found:
+						self.subpoints.append([self.waypoints[i][0], y-m*self.threshold])
+						if self.waypoints[i][0] < (self.width/2):
+							self.subpoints.append([self.waypoints[i][0]+m*(10+2*self.threshold), y-m*(self.threshold)])
+							self.subpoints.append([self.waypoints[i][0]+m*(10+2*self.threshold), y + m*(10+ 2*self.threshold)])
+						else:
+							self.subpoints.append([self.waypoints[i][0]-m*(10-2*self.threshold), y-m*(self.threshold)])
+							self.subpoints.append([self.waypoints[i][0]-m*(10-2*self.threshold), y + m*(10 + 2*self.threshold)])
+						
+						self.subpoints.append([self.waypoints[i][0], y+m*(10+2*self.threshold)])
 						break
-			
-			if found
-			
+
+		# for point in self.subpoints:
+		# 	self.plot[point[0], point[1]] = 50
+		
+
+
+		rospy.loginfo(self.subpoints)
+
 			#call sub waypoint gen function
+
 
 
 		ax = fig.add_subplot(111)
