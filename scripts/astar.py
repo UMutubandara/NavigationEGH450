@@ -17,11 +17,14 @@ import std_msgs.msg
 
 class WaypontGen(object):
 	
+	def og_sub(self,msg):
+		self.testgrid = msg.data
+		self.resolution = msg.info.resolution
+		self.width = msg.info.width
+		self.height = msg.info.height
 
+		#changes from the real points to occupancy grid points
 
-	def __init__(self):
-		#set up
-		self.realpoints = list()
 		self.waypoints = [	[-1.3, 1.5],
 						 [-1.3, -1.5],
 						 [-0.3, -1.5],
@@ -36,18 +39,6 @@ class WaypontGen(object):
 						 [1.7 , -1.7],
 						 [1.7, 1.7]]
 
-		self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
-		
-		
-
-	def og_sub(self,msg):
-		self.testgrid = msg.data
-		self.resolution = msg.info.resolution
-		self.width = msg.info.width
-		self.height = msg.info.height
-
-		#changes from the real points to occupancy grid points
-
 		for point in self.waypoints:
 			point[0] = int(round((1/self.resolution)*(point[0]+(self.resolution*self.width*0.5))))
 			point[1] = int(round((1/self.resolution)*(point[1]+(self.resolution*self.width*0.5))))
@@ -55,7 +46,7 @@ class WaypontGen(object):
 
 		#Grid Resolution, height and width
 		
-		#rospy.loginfo(self.width)
+		
 		#rospy.loginfo(self.height)
 		
 		self.threshold = 3
@@ -110,9 +101,9 @@ class WaypontGen(object):
 			#call sub waypoint gen function
 		self.realpoints = self.waypoints	
 		
-		# for element in self.realpoints:
-		# 	element[0] = (point[0]*self.resolution)-(self.resolution*self.width*0.5)
-		# 	element[1] = (point[1]*self.resolution)-(self.resolution*self.width*0.5)
+		for element in self.realpoints:
+		 	element[0] = (point[0]*self.resolution)-(self.resolution*self.width*0.5)
+		 	element[1] = (point[1]*self.resolution)-(self.resolution*self.width*0.5)
 
 
 		ax = fig.add_subplot(111)
@@ -127,6 +118,16 @@ class WaypontGen(object):
 		#cax.patch.set_alpha(0)
 		cax.set_frame_on(False)
 		plt.show()
+
+	def __init__(self):
+		#set up
+		self.realpoints = list()
+		
+
+		self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
+		#rospy.loginfo(self.waypoints)
+
+	
 
 		
 
