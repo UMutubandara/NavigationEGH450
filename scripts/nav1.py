@@ -13,25 +13,36 @@ class Navigation():
 	def __init__(self):
 		#set up publisher 
 		self.msg_out= PoseStamped()
-		self.msg_out.header.frame_id = "world"
+		self.msg_out.header.frame_id = "map"
 		self.currentwp = Pose()
 		self.pub = rospy.Publisher('/mavros/setpoint_position/local', PoseStamped, queue_size =10)
 		
 		self.timer = rospy.Timer(rospy.Duration(0.1), self.pub_callback)
 
 		#set up test waypoints and waypoint counter
-		self.waypoint = [[0 , 0 , 0], 
-						[0 , 0 , 1.5], 
+		self.waypoint = [[0 , 0 , 1.5], 
 						[1.5, 1.5, 1.5], 
-						[1.5, -1.5, 1.5], 
-						[-1.5,1.5, 1.5], 
-						[-1.5 ,-1.5 ,1.5 ],
+						[-1.5, 1.5, 1.3], 
+						[-1.5, -1.5, 1.5], 
+						[1.5 ,-1.5 ,1.5 ],
+						[0, 0, 1.5],
 						[0 ,0 ,0 ]]
 		self.waypoint_counter = 0
+		self.currentwp.position.x = self.waypoint[self.waypoint_counter][0]
+		self.currentwp.position.y = self.waypoint[self.waypoint_counter][1]
+		self.currentwp.position.z = self.waypoint[self.waypoint_counter][2]
+		self.currentwp.orientation.x = 0
+		self.currentwp.orientation.y = 0
+		self.currentwp.orientation.z = 0
+		self.currentwp.orientation.w = 1
+		
+		self.timewphit = rospy.Time(0)
+		
 		self.land = 0
 
 		# Set up the subscriber
-		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback)
+		#self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback)
+		self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback)
 		self.sub_land = rospy.Subscriber("/land", Int8, self.ground)
 
 	def pub_callback(self, event):
@@ -42,35 +53,41 @@ class Navigation():
 		self.msg_out.pose= self.currentwp
 			
 		self.pub.publish(self.msg_out)
-		rospy.loginfo("NextPoint Position: [ %f, %f, %f ]"%(self.msg_out.pose.position.x, self.msg_out.pose.position.y, self.msg_out.pose.position.z))
+		#rospy.loginfo("NextPoint Position: [ %f, %f, %f ]"%(self.msg_out.pose.position.x, self.msg_out.pose.position.y, self.msg_out.pose.position.z))
 
 	def shutdown(self):
 		# Unregister anything that needs it here
-		self.sub_ping.unregister()	
+		self.sub_ping.unregister()
+
 	def callback(self, msg):
 
 		# Copying for simplicity
 		self.uav_pose = msg.pose
 
-		self.near_waypoint = 0.20
-
-		#self.distanceto = np.sqrt(((self.uav_pose.position.x - self.currentwp.x)**2)+((self.uav_pose.position.y - 
-		#self.currentwp.y)**2)+((self.uav_pose.position.z - self.currentwp.z)**2))
+		
+		self.near_waypoint = 0.1
 
 		self.distanceto = np.sqrt(((self.uav_pose.position.x - self.waypoint[self.waypoint_counter][0])**2)+((self.uav_pose.position.y - 
 		self.waypoint[self.waypoint_counter][1])**2)+((self.uav_pose.position.z - self.waypoint[self.waypoint_counter][2])**2))
 
-		rospy.loginfo(self.distanceto)
-
-		if ((self.distanceto < self.near_waypoint) and (self.waypoint_counter < 6)):
-		 	self.waypoint_counter += 1
-		 	self.currentwp.position.x = self.waypoint[self.waypoint_counter][0]
-			self.currentwp.position.y = self.waypoint[self.waypoint_counter][1]
-			self.currentwp.position.z = self.waypoint[self.waypoint_counter][2]
-			self.currentwp.orientation.x = 0
-			self.currentwp.orientation.y = 0
-			self.currentwp.orientation.z = 1
-			self.currentwp.orientation.w = 1
+		if ((self.distanceto < self.near_waypoint) and (self.waypoint_counter < len(self.waypoint))):
+			if(self.timewphit == rospy.Time(0)):
+				rospy.loginfo("Waypoint reached!")
+				self.timewphit = rospy.get_rostime()
+				
+			if (rospy.get_rostime() - self.timewphit) > rospy.Duration(2):
+				rospy.loginfo("Waited long enough, moving to next!")
+				self.waypoint_counter += 1
+				self.currentwp.position.x = self.waypoint[self.waypoint_counter][0]
+				self.currentwp.position.y = self.waypoint[self.waypoint_counter][1]
+				self.currentwp.position.z = self.waypoint[self.waypoint_counter][2]
+				self.currentwp.orientation.x = 0
+				self.currentwp.orientation.y = 0
+				self.currentwp.orientation.z = 0
+				self.currentwp.orientation.w = 1
+				self.timewphit = rospy.Time(0)
+		else:
+			self.timewphit = rospy.Time(0)
 
 
 	
@@ -80,7 +97,7 @@ class Navigation():
 		if (self.eground > 2):
 			self.currentwp.position.x = self.uav_pose.position.x
 			self.currentwp.position.y = self.uav_pose.position.y
-			self.currentwp.position.z = 0.06
+			self.currentwp.position.z = 0.1
 
 		else:
 			self.currentwp.position.x = self.waypoint[self.waypoint_counter][0]
@@ -88,7 +105,7 @@ class Navigation():
 			self.currentwp.position.z = self.waypoint[self.waypoint_counter][2]
 			self.currentwp.orientation.x = 0
 			self.currentwp.orientation.y = 0
-			self.currentwp.orientation.z = 1
+			self.currentwp.orientation.z = 0
 			self.currentwp.orientation.w = 1
 
 
@@ -104,4 +121,4 @@ if __name__ == '__main__':
 		# Shutdown
 		rospy.loginfo("Shutting down...")
 		nav.shutdown()
-rospy.loginfo("Done!")
+		rospy.loginfo("Done!")
