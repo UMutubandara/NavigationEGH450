@@ -9,7 +9,6 @@ from std_msgs.msg import Int8
 from geometry_msgs.msg import Pose
 from std_msgs.msg import Int8
 import matplotlib.pyplot as plt
-
 from nav_msgs.msg import *
 from std_msgs.msg import *
 import std_msgs.msg
@@ -21,6 +20,7 @@ class Navigation():
 		#set up publisher 
 		self.waypoints = list()
 		self.have_waypoints = False	
+		
 		#self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
 		self.sub_ping = rospy.Subscriber("/grid", OccupancyGrid, self.og_sub)
 
@@ -48,13 +48,13 @@ class Navigation():
 		self.land = 0
 
 		# Set up the subscriber
+
 		#self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #jamsim testing
 		self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback) 	#demo testing
 
 
-
-
 		self.sub_land = rospy.Subscriber("/land", Int8, self.ground)
+		#self.sub_land = rospy.Subscriber("/black_sign_location", Int8, self.ground)
 
 	def pub_callback(self, event):
 		#print 'Timer called at ' + str(event.current_real)
@@ -96,7 +96,7 @@ class Navigation():
 					rospy.loginfo("Waypoint reached!")
 					self.timewphit = rospy.get_rostime()
 					
-				if (rospy.get_rostime() - self.timewphit) > rospy.Duration(1):
+				if (rospy.get_rostime() - self.timewphit) > rospy.Duration(2):
 					rospy.loginfo("Waited long enough, moving to next!")
 					
 					if self.waypoint_counter >= self.list-1:
@@ -170,14 +170,34 @@ class Navigation():
 
 	
 	def ground(self, msg):
-		self.eground = msg.data
+		self.black = msg.data
 		#rospy.loginfo(msg.data)
-		if (self.eground > 2):
-			self.currentwp.position.x = self.uav_pose.position.x
-			self.currentwp.position.y = self.uav_pose.position.y
-			self.currentwp.position.z = 1
-			self.waypoint_counter -= 1
+		
 
+		if (self.black > 2):
+			self.currentwp.position.x = 0 #x + uav position
+			self.currentwp.position.y = 0 #y+ uav position
+			self.currentwp.position.z = 0.5
+
+			rospy.loginfo("Black Target Found, moving to target!")
+
+			if(self.timewphit == rospy.Time(0)):
+				self.timewphit = rospy.get_rostime()
+
+			rospy.loginfo("Target Found, commence sampling!")
+
+			if (rospy.get_rostime() - self.timewphit) > rospy.Duration(12):
+
+
+				
+				self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
+				self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
+				self.currentwp.position.z = 1.5
+				self.currentwp.orientation.x = 0
+				self.currentwp.orientation.y = 0
+				self.currentwp.orientation.z = 0
+				self.currentwp.orientation.w = 1
+				self.timewphit = rospy.Time(0)
 		else:
 			self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
 			self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
@@ -186,7 +206,9 @@ class Navigation():
 			self.currentwp.orientation.y = 0
 			self.currentwp.orientation.z = 0
 			self.currentwp.orientation.w = 1
+			self.timewphit = rospy.Time(0)
 
+			
 	def og_sub(self,msg):
 		self.testgrid = msg.data
 		self.resolution = msg.info.resolution
