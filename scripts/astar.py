@@ -16,7 +16,8 @@ import std_msgs.msg
 
 
 class WaypontGen(object):
-	
+
+
 	def og_sub(self,msg):
 		self.testgrid = msg.data
 		self.resolution = msg.info.resolution
@@ -25,25 +26,24 @@ class WaypontGen(object):
 
 		#changes from the real points to occupancy grid points
 
-		self.waypoints = [	[-1.3, 1.5],
-						 [-1.3, -1.5],
-						 [-0.3, -1.5],
-						 [-0.3, 1.5],
-						 [0.7,  1.5],
-						 [0.7,  -1.5],
-						 [1.7,  -1.5],
-						 [1.7,  1.5],
-						 [1.7, 1.7],
-						 [-1.7, 1.7],
-						 [-1.7,-1.7],
-						 [1.7 , -1.7],
-						 [1.7, 1.7]]
+		self.waypoints = [	[-1.3, 1.5, 1.5],
+						 [-1.3, -1.5, 1.5],
+						 [-0.3, -1.5, 1.5],
+						 [-0.3, 1.5, 1.5],
+						 [0.7,  1.5, 1.5],
+						 [0.7,  -1.5, 1.5],
+						 [1.7,  -1.5, 1.5],
+						 [1.7,  1.5, 1.5],
+						 [1.7, 1.7, 1.5],
+						 [-1.7, 1.7, 1.5],
+						 [-1.7,-1.7, 1.5],
+						 [1.7 , -1.7, 1.5],
+						 [1.7, 1.7, 1.5]]
 
 		for point in self.waypoints:
 			point[0] = int(round((1/self.resolution)*(point[0]+(self.resolution*self.width*0.5))))
 			point[1] = int(round((1/self.resolution)*(point[1]+(self.resolution*self.width*0.5))))
 		
-
 		#Grid Resolution, height and width
 		
 		
@@ -105,7 +105,8 @@ class WaypontGen(object):
 		 	element[0] = (point[0]*self.resolution)-(self.resolution*self.width*0.5)
 		 	element[1] = (point[1]*self.resolution)-(self.resolution*self.width*0.5)
 
-
+		rospy.loginfo(self.waypoints)
+		
 		ax = fig.add_subplot(111)
 		ax.set_title('Occupancy Grid')
 		plt.imshow(self.plot)
@@ -119,17 +120,24 @@ class WaypontGen(object):
 		cax.set_frame_on(False)
 		plt.show()
 
-	def __init__(self):
-		#set up
-		self.realpoints = list()
 		
-
-		self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
-		#rospy.loginfo(self.waypoints)
+		self.have_waypoints = True
 
 	
+		#rospy.loginfo(self.waypoints)
+	def __init__(self):
+			#set up
 
+		self.have_waypoints = False
 		
+			
+		self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
+		
+	
+		
+	
+
+
 
 if __name__ == '__main__':
 	rospy.init_node('waypoints', anonymous=True)
