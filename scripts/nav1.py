@@ -21,8 +21,8 @@ class Navigation():
 		#set up publisher 
 		self.waypoints = list()
 		self.have_waypoints = False	
+		#self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
 		self.sub_ping = rospy.Subscriber("/grid", OccupancyGrid, self.og_sub)
-
 
 		self.msg_out= PoseStamped()
 		self.msg_out.header.frame_id = "map"
@@ -104,15 +104,64 @@ class Navigation():
 						self.currentwp.position.x = self.uav_pose.position.x
 						self.currentwp.position.y = self.uav_pose.position.y
 						rospy.loginfo("Finished, landing!")
+
+					elif self.waypoint_counter == 11:
+						self.waypoint_counter += 1					
+						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
+						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
+						self.currentwp.position.z = 1.5
+						self.currentwp.orientation.w = 0.707
+						self.currentwp.orientation.x = 0
+						self.currentwp.orientation.y = 0
+						self.currentwp.orientation.z = 0.707
+						self.timewphit = rospy.Time(0)
+						rospy.loginfo("Wall 1 rotation!")
+
+					elif self.waypoint_counter == 12:
+						self.waypoint_counter += 1					
+						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
+						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
+						self.currentwp.position.z = 1.5
+						self.currentwp.orientation.w = 0
+						self.currentwp.orientation.x = 0
+						self.currentwp.orientation.y = 0
+						self.currentwp.orientation.z = 1
+						self.timewphit = rospy.Time(0)
+						rospy.loginfo("Wall 2 rotation!")
+
+					elif self.waypoint_counter == 13:
+						self.waypoint_counter += 1					
+						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
+						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
+						self.currentwp.position.z = 1.5
+						self.currentwp.orientation.w = -0.707
+						self.currentwp.orientation.x = 0
+						self.currentwp.orientation.y = 0
+						self.currentwp.orientation.z = 0.707
+						self.timewphit = rospy.Time(0)
+						rospy.loginfo("Wall 3 rotation!")
+
+					elif self.waypoint_counter == 14:
+						self.waypoint_counter += 1					
+						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
+						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
+						self.currentwp.position.z = 1.5
+						self.currentwp.orientation.w = -1
+						self.currentwp.orientation.x = 0
+						self.currentwp.orientation.y = 0
+						self.currentwp.orientation.z = 0
+						self.timewphit = rospy.Time(0)
+						rospy.loginfo("Wall 1 rotation!")
+
 					else:
 						self.waypoint_counter += 1					
 						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
 						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
 						self.currentwp.position.z = 1.5
+						self.currentwp.orientation.w = 1
 						self.currentwp.orientation.x = 0
 						self.currentwp.orientation.y = 0
 						self.currentwp.orientation.z = 0
-						self.currentwp.orientation.w = 1
 						self.timewphit = rospy.Time(0)
 			else:
 				self.timewphit = rospy.Time(0)
@@ -254,12 +303,6 @@ class Navigation():
 		# #cax.patch.set_alpha(0)
 		# cax.set_frame_on(False)
 		# plt.show()
-		
-		
-		
-
-		
-		
 		
 
 if __name__ == '__main__':
