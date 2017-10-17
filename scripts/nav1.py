@@ -21,7 +21,7 @@ class Navigation():
 		#set up publisher 
 		self.waypoints = list()
 		self.have_waypoints = False	
-		self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
+		self.sub_ping = rospy.Subscriber("/grid", OccupancyGrid, self.og_sub)
 
 
 		self.msg_out= PoseStamped()
@@ -35,8 +35,8 @@ class Navigation():
 		
 						
 		self.waypoint_counter = -1
-		self.currentwp.position.x = -0.1
-		self.currentwp.position.y = 0.1
+		self.currentwp.position.x = -1.3
+		self.currentwp.position.y = 1.5
 		self.currentwp.position.z = 1.5
 		self.currentwp.orientation.x = 0
 		self.currentwp.orientation.y = 0
@@ -48,8 +48,8 @@ class Navigation():
 		self.land = 0
 
 		# Set up the subscriber
-		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #jamsim testing
-		#self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback) 	#demo testing
+		#self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #jamsim testing
+		self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback) 	#demo testing
 
 
 
@@ -84,30 +84,36 @@ class Navigation():
 								((self.uav_pose.position.y - self.msg_out.pose.position.y)**2)+
 								((self.uav_pose.position.z - self.msg_out.pose.position.z)**2))
 
-			#print(self.distanceto)
+			
 
 			"""self.distanceto = np.sqrt(((self.uav_pose.position.x - self.waypoints[self.waypoint_counter][0])**2)+((self.uav_pose.position.y - 
 			self.waypoints[self.waypoint_counter][1])**2)+((self.uav_pose.position.z - self.waypoints[self.waypoint_counter][2])**2))"""
 
 			
 
-			if ((self.distanceto < self.near_waypoint) and (self.waypoint_counter < len(self.waypoints))):
+			if ((self.distanceto < self.near_waypoint) and (self.waypoint_counter < self.list )):
 				if(self.timewphit == rospy.Time(0)):
 					rospy.loginfo("Waypoint reached!")
 					self.timewphit = rospy.get_rostime()
 					
-				if (rospy.get_rostime() - self.timewphit) > rospy.Duration(2):
+				if (rospy.get_rostime() - self.timewphit) > rospy.Duration(1):
 					rospy.loginfo("Waited long enough, moving to next!")
-					self.waypoint_counter += 1
 					
-					self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
-					self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
-					self.currentwp.position.z = 1.5
-					self.currentwp.orientation.x = 0
-					self.currentwp.orientation.y = 0
-					self.currentwp.orientation.z = 0
-					self.currentwp.orientation.w = 1
-					self.timewphit = rospy.Time(0)
+					if self.waypoint_counter >= self.list-1:
+						self.currentwp.position.z = 0
+						self.currentwp.position.x = self.uav_pose.position.x
+						self.currentwp.position.y = self.uav_pose.position.y
+						rospy.loginfo("Finished, landing!")
+					else:
+						self.waypoint_counter += 1					
+						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
+						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
+						self.currentwp.position.z = 1.5
+						self.currentwp.orientation.x = 0
+						self.currentwp.orientation.y = 0
+						self.currentwp.orientation.z = 0
+						self.currentwp.orientation.w = 1
+						self.timewphit = rospy.Time(0)
 			else:
 				self.timewphit = rospy.Time(0)
 				
@@ -121,6 +127,7 @@ class Navigation():
 			self.currentwp.position.x = self.uav_pose.position.x
 			self.currentwp.position.y = self.uav_pose.position.y
 			self.currentwp.position.z = 1
+			self.waypoint_counter -= 1
 
 		else:
 			self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
@@ -228,9 +235,12 @@ class Navigation():
 
 
 		self.waypoints.append(waypoint_list)
+		self.list = len(self.waypoints[0])
 
 		self.have_waypoints = True
 		rospy.loginfo(self.waypoints)
+		#rospy.loginfo(self.list)
+
 
 		# ax = fig.add_subplot(111)
 		# ax.set_title('Occupancy Grid')
