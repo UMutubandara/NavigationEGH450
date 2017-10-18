@@ -5,6 +5,7 @@ import math
 import time
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Pose
+from mavros_msgs.msg import OverrideRCIn
 from std_msgs.msg import Int8
 from geometry_msgs.msg import Pose
 from std_msgs.msg import Int8
@@ -21,8 +22,8 @@ class Navigation():
 		self.waypoints = list()
 		self.have_waypoints = False	
 		
-		#self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
-		self.sub_ping = rospy.Subscriber("/grid", OccupancyGrid, self.og_sub)
+		self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
+		#self.sub_ping = rospy.Subscriber("/grid", OccupancyGrid, self.og_sub)
 
 		self.msg_out= PoseStamped()
 		self.msg_out.header.frame_id = "map"
@@ -32,8 +33,21 @@ class Navigation():
 		self.timer = rospy.Timer(rospy.Duration(0.1), self.pub_callback)
 
 		#set up test waypoints and waypoint counter
-		
-						
+		self.servopub = rospy.Publisher('/mavros/rc/override', OverrideRCIn, queue_size=10)
+		self.servo_msg_out = OverrideRCIn()
+		self.servo_msg_out.channels[0] = self.servo_msg_out.CHAN_NOCHANGE
+		self.servo_msg_out.channels[1] = self.servo_msg_out.CHAN_NOCHANGE
+		self.servo_msg_out.channels[2] = self.servo_msg_out.CHAN_NOCHANGE
+		self.servo_msg_out.channels[3] = self.servo_msg_out.CHAN_NOCHANGE
+		self.servo_msg_out.channels[4] = self.servo_msg_out.CHAN_NOCHANGE
+		self.servo_msg_out.channels[5] = self.servo_msg_out.CHAN_NOCHANGE
+		self.servo_msg_out.channels[6] = self.servo_msg_out.CHAN_NOCHANGE
+		self.servo_msg_out.channels[7] = self.servo_msg_out.CHAN_NOCHANGE
+
+		self.servo_msg_out.channels[7] = 1000
+
+		self.servopub.publish(self.servo_msg_out)
+
 		self.waypoint_counter = -1
 		self.currentwp.position.x = -1.3
 		self.currentwp.position.y = 1.5
@@ -49,12 +63,13 @@ class Navigation():
 
 		# Set up the subscriber
 
-		#self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #jamsim testing
-		self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback) 	#demo testing
+		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #jamsim testing
+		#self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback) 	#demo testing
 
 
 		self.sub_land = rospy.Subscriber("/land", Int8, self.ground)
-		#self.sub_land = rospy.Subscriber("/black_sign_location", Int8, self.ground)
+		
+		self.sub_black= rospy.Subscriber("/black_sign_location", PoseStamped, self.black_callback)
 
 	def pub_callback(self, event):
 		#print 'Timer called at ' + str(event.current_real)
@@ -106,6 +121,8 @@ class Navigation():
 						rospy.loginfo("Finished, landing!")
 
 					elif self.waypoint_counter == 11:
+						self.servo_msg_out.channels[7] = 2000
+						self.servopub.publish(self.servo_msg_out)
 						self.waypoint_counter += 1					
 						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
 						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
@@ -165,7 +182,43 @@ class Navigation():
 						self.timewphit = rospy.Time(0)
 			else:
 				self.timewphit = rospy.Time(0)
-				
+	
+	def black_callback(self,msg):
+		
+		self.blacksign = msg.pose
+
+		self.tg = np.sqrt((self.blacksign.position.x**2) + (self.blacksign.position.y**2))
+
+		if(self.tg > 0.2):
+			self.currentwp.position.x = self.blacksign.position.x #x + uav position
+			self.currentwp.position.y = self.blacksign.position.y #y+ uav position
+			self.currentwp.position.z = 1
+
+			rospy.loginfo("Black Target Found, moving to target!")
+
+			if(self.timewphit == rospy.Time(0)):
+				self.timewphit = rospy.get_rostime()
+
+			rospy.loginfo("Target Found, commence sampling!")
+
+			if (rospy.get_rostime() - self.timewphit) > rospy.Duration(12):
+				self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
+				self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
+				self.currentwp.position.z = 1.5
+				self.currentwp.orientation.x = 0
+				self.currentwp.orientation.y = 0
+				self.currentwp.orientation.z = 0
+				self.currentwp.orientation.w = 1
+				self.timewphit = rospy.Time(0)
+		else:
+			self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
+			self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
+			self.currentwp.position.z = 1.5
+			self.currentwp.orientation.x = 0
+			self.currentwp.orientation.y = 0
+			self.currentwp.orientation.z = 0
+			self.currentwp.orientation.w = 1
+			self.timewphit = rospy.Time(0)
 
 
 	
@@ -179,20 +232,18 @@ class Navigation():
 			self.currentwp.position.y = 0 #y+ uav position
 			self.currentwp.position.z = 0.5
 
-			rospy.loginfo("Black Target Found, moving to target!")
+			rospy.loginfo("Land Command recieved, moving to land!")
 
 			if(self.timewphit == rospy.Time(0)):
 				self.timewphit = rospy.get_rostime()
 
-			rospy.loginfo("Target Found, commence sampling!")
+			rospy.loginfo("UAV Landing!")
 
 			if (rospy.get_rostime() - self.timewphit) > rospy.Duration(12):
-
-
-				
+			
 				self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
 				self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
-				self.currentwp.position.z = 1.5
+				self.currentwp.position.z = 0
 				self.currentwp.orientation.x = 0
 				self.currentwp.orientation.y = 0
 				self.currentwp.orientation.z = 0
@@ -310,6 +361,7 @@ class Navigation():
 
 		self.have_waypoints = True
 		rospy.loginfo(self.waypoints)
+		rospy.loginfo("Grid analysed and Waypoints set!")
 		#rospy.loginfo(self.list)
 
 
