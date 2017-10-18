@@ -22,8 +22,8 @@ class Navigation():
 		self.waypoints = list()
 		self.have_waypoints = False	
 		
-		#self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
-		self.sub_ping = rospy.Subscriber("/grid", OccupancyGrid, self.og_sub)
+		self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
+		#self.sub_ping = rospy.Subscriber("/grid", OccupancyGrid, self.og_sub)
 
 		self.msg_out= PoseStamped()
 		self.msg_out.header.frame_id = "map"
@@ -49,9 +49,9 @@ class Navigation():
 		self.servopub.publish(self.servo_msg_out)
 
 		self.waypoint_counter = -1
-		self.currentwp.position.x = 0
-		self.currentwp.position.y = 0
-		self.currentwp.position.z = 1.3
+		self.currentwp.position.x = -1.5
+		self.currentwp.position.y = 1.5
+		self.currentwp.position.z = 1.5
 		self.currentwp.orientation.x = 0
 		self.currentwp.orientation.y = 0
 		self.currentwp.orientation.z = 0
@@ -67,8 +67,8 @@ class Navigation():
 		self.redfound = False
 		# Set up the subscriber
 
-		#self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #jamsim testing
-		self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback) 	#demo testing
+		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #jamsim testing
+		#self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback) 	#demo testing
 
 
 		self.sub_land = rospy.Subscriber("/land", Int8, self.ground)
@@ -235,8 +235,8 @@ class Navigation():
 		
 
 		if (self.black > 2):
-			self.currentwp.position.x = 0 #x + uav position
-			self.currentwp.position.y = 0 #y+ uav position
+			self.currentwp.position.x = self.uav_pose.position.x #x + uav position
+			self.currentwp.position.y = self.uav_pose.position.y #y+ uav position
 			self.currentwp.position.z = 0
 			self.waypoint_counter -= 1
 			self.longsample = True
