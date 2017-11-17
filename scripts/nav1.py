@@ -11,9 +11,10 @@ from geometry_msgs.msg import Pose
 from std_msgs.msg import Int8
 import matplotlib.pyplot as plt
 from nav_msgs.msg import *
-from std_msgs.msg import *
-import std_msgs.msg
-import std_msgs.msg
+
+import tf2_ros
+from geometry_msgs.msg import TransformStamped
+from std_msgs.msg import Time
 
 class Navigation():
 
@@ -22,8 +23,8 @@ class Navigation():
 		self.waypoints = list()
 		self.have_waypoints = False	
 		
-		self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
-		#self.sub_ping = rospy.Subscriber("/grid", OccupancyGrid, self.og_sub)
+		#self.sub_ping = rospy.Subscriber("/emulator/grid_test", OccupancyGrid, self.og_sub)
+		self.sub_ping = rospy.Subscriber("/grid", OccupancyGrid, self.og_sub)
 
 		self.msg_out= PoseStamped()
 		self.msg_out.header.frame_id = "map"
@@ -49,13 +50,14 @@ class Navigation():
 		self.servopub.publish(self.servo_msg_out)
 
 		self.waypoint_counter = -1
-		self.currentwp.position.x = -1.5
-		self.currentwp.position.y = 1.5
+		self.currentwp.position.x = 0
+		self.currentwp.position.y = 0
 		self.currentwp.position.z = 1.5
 		self.currentwp.orientation.x = 0
 		self.currentwp.orientation.y = 0
 		self.currentwp.orientation.z = 0
 		self.currentwp.orientation.w = 1
+		
 		
 		self.timewphit = rospy.Time(0)
 		
@@ -66,15 +68,41 @@ class Navigation():
 		
 		self.redfound = False
 		# Set up the subscriber
+		self.yellowfound = False
+		
+		#self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #jamsim testing
+		self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback) 	#demo testing
+		self.uav_pose= Pose()
+		
 
-		self.sub_ping = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.callback) #jamsim testing
-		#self.sub_ping = rospy.Subscriber("/vicon/UAVTAQG2/UAVTAQG2", PoseStamped, self.callback) 	#demo testing
 
 
 		self.sub_land = rospy.Subscriber("/land", Int8, self.ground)
 		
-		self.sub_black= rospy.Subscriber("/black_sign_location", PoseStamped, self.black_callback)
-		self.sub_red= rospy.Subscriber("/red_sign_location", PoseStamped, self.red_callback)
+		self.sub_black= rospy.Subscriber("/black_sign_location", Time, self.black_callback)
+		self.sub_red= rospy.Subscriber("/red_sign_location", Time, self.red_callback)
+		self.sub_yellow= rospy.Subscriber("/yellow_sign_location", Time, self.yellow_callback)
+		
+		
+		
+		self.tfbf = tf2_ros.Buffer()
+		self.tfln = tf2_ros.TransformListener(self.tfbf)
+		
+		self.tfbr = tf2_ros.StaticTransformBroadcaster()
+		t = geometry_msgs.msg.TransformStamped()
+		t.header.stamp = rospy.Time.now()
+		t.header.frame_id = "vicon/UAVTAQG2/UAVTAQG2"
+		t.child_frame_id = "camera" #0.05 0 -0.12 -1.57 0 3.14
+		t.transform.translation.x = 0.05
+		t.transform.translation.y = 0
+		t.transform.translation.z = -0.12
+		q = tf.transformations.quaternion_from_euler(3.14, 0, -1.57)
+		t.transform.rotation.x = q[0]
+		t.transform.rotation.y = q[1]
+		t.transform.rotation.z = q[2]
+		t.transform.rotation.w = q[3]
+		self.tfbr.sendTransform(t)
+		
 
 	def pub_callback(self, event):
 		#print 'Timer called at ' + str(event.current_real)
@@ -118,7 +146,7 @@ class Navigation():
 				self.hovertime = rospy.Duration(0)
 				
 				if self.longsample:
-					self.hovertime = rospy.Duration(10)
+					self.hovertime = rospy.Duration(12)
 				else:
 					self.hovertime = rospy.Duration(1)
 					
@@ -145,8 +173,23 @@ class Navigation():
 						self.currentwp.orientation.z = 0.707
 						self.timewphit = rospy.Time(0)
 						rospy.loginfo("Wall 1 rotation!")
+						
+						t = geometry_msgs.msg.TransformStamped()
+						t.header.stamp = rospy.Time.now()
+						t.header.frame_id = "vicon/UAVTAQG2/UAVTAQG2"
+						t.child_frame_id = "camera" #0.05 0 -0.12 -1.57 0 3.14
+						t.transform.translation.x = 0.05
+						t.transform.translation.y = 0
+						t.transform.translation.z = -0.12
+						q = tf.transformations.quaternion_from_euler(-1.57, 0, -1.57)
+						t.transform.rotation.x = q[0]
+						t.transform.rotation.y = q[1]
+						t.transform.rotation.z = q[2]
+						t.transform.rotation.w = q[3]
+						self.tfbr.sendTransform(t)
+						
 
-					elif self.waypoint_counter == 12:
+					elif self.waypoint_counter == 13:
 						self.waypoint_counter += 1					
 						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
 						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
@@ -158,7 +201,7 @@ class Navigation():
 						self.timewphit = rospy.Time(0)
 						rospy.loginfo("Wall 2 rotation!")
 
-					elif self.waypoint_counter == 13:
+					elif self.waypoint_counter == 14:
 						self.waypoint_counter += 1					
 						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
 						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
@@ -170,7 +213,7 @@ class Navigation():
 						self.timewphit = rospy.Time(0)
 						rospy.loginfo("Wall 3 rotation!")
 
-					elif self.waypoint_counter == 14:
+					elif self.waypoint_counter == 15:
 						self.waypoint_counter += 1					
 						self.currentwp.position.x = self.waypoints[0][self.waypoint_counter][0]
 						self.currentwp.position.y = self.waypoints[0][self.waypoint_counter][1]
@@ -196,35 +239,82 @@ class Navigation():
 				self.timewphit = rospy.Time(0)
 	
 	def black_callback(self,msg):
-		
+			
 		if not self.blackfound :
 			self.blackfound = True
-			self.blacksign = msg.pose
+			#self.blacksign = msg.pose
+			timestamp = msg.data
+			
+			try:
+				trans = self.tfbf.lookup_transform("map", "BlackSign", timestamp, rospy.Duration(0.1))
 
-			self.currentwp.position.x = self.blacksign.position.x + self.uav_pose.position.x #x + uav position
-			self.currentwp.position.y = self.blacksign.position.y + self.uav_pose.position.y #y+ uav position
-			self.currentwp.position.z = 1
-			self.waypoint_counter -= 1
+				self.currentwp.position.x = trans.transform.translation.x
+				self.currentwp.position.y = trans.transform.translation.y
+				self.currentwp.position.z = 0.7
+				self.waypoint_counter -= 1
 
-			rospy.loginfo("Black target at : [ %f, %f, %f ]"%(self.currentwp.position.x, self.currentwp.position.y, self.currentwp.position.z))
-		
-			self.longsample = True
+				rospy.loginfo("Black target at : [ %f, %f, %f ]"%(self.currentwp.position.x, self.currentwp.position.y, self.currentwp.position.z))
+				self.longsample = True
+			except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+				rospy.loginfo("Error getting transform: %s" % e)
+			
 		
 
 	def red_callback(self,msg):
 		
 		if not self.redfound :
 			self.redfound = True
-			self.redsign = msg.pose
+			#self.redsign = msg.pose
+			timestamp = msg.data
+			
+			try:
+				trans = self.tfbf.lookup_transform("map", "RedSign", timestamp, rospy.Duration(0.1))
 
-			self.currentwp.position.x = self.redsign.position.x + self.uav_pose.position.x #x + uav position
-			self.currentwp.position.y = self.redsign.position.y + self.uav_pose.position.y #y+ uav position
-			self.currentwp.position.z = 1
-			self.waypoint_counter -= 1
+				self.currentwp.position.x = trans.transform.translation.x
+				self.currentwp.position.y = trans.transform.translation.y
+				self.currentwp.position.z = 0.7
+				self.waypoint_counter -= 1
 
-			rospy.loginfo("Red target at : [ %f, %f, %f ]"%(self.currentwp.position.x, self.currentwp.position.y, self.currentwp.position.z))
+				rospy.loginfo("red target at : [ %f, %f, %f ]"%(self.currentwp.position.x, self.currentwp.position.y, self.currentwp.position.z))
+				self.longsample = True
+			except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+				rospy.loginfo("Error getting transform: %s" % e)
+			
+	def yellow_callback(self,msg):
 		
-			self.longsample = True
+		if not self.yellowfound :
+			self.yellowfound = True
+			#self.yellowsign = msg.pose
+			timestamp = msg.data
+			
+			try:
+				trans = self.tfbf.lookup_transform("map", "YellowSign", timestamp, rospy.Duration(0.1))
+				x = trans.transform.translation.x
+				y = trans.transform.translation.y
+				z = 1
+				
+				if(x > 1.5):
+					x =1.5
+				elif(x< -1.5):
+					x = -1.5
+					
+				if(y > 1.5):
+					y =1.5
+				elif(y < -1.5):
+					y = -1.5
+					
+					
+				self.currentwp.position.x = x
+				self.currentwp.position.y = y
+				self.currentwp.position.z = z
+				
+				
+				self.waypoint_counter -= 1
+
+				rospy.loginfo("yellow target at : [ %f, %f, %f ]"%(self.currentwp.position.x, self.currentwp.position.y, self.currentwp.position.z))
+				self.longsample = True
+			except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+				rospy.loginfo("Error getting transform: %s" % e)
 		
 
 
@@ -277,16 +367,16 @@ class Navigation():
 
 		#changes from the real points to occupancy grid points
 
-		waypoint_list = [[-1.5, 1.5],
-						 [-1.5, -1.5],
+		waypoint_list = [		[-1.5, 1.5],
+						 [-1.7, -1.5],
 						 [-0.3, -1.5],
 						 [-0.3, 1.5],
-						 [1,  1.5],
-						 [1,  -1.5],
-						 [1.5,  -1.5],
-						 [1.5,  1.5],
-						 [1.5, 1.5],
-						 [-1.7, 1.7],
+						 [1.0,  1.5],
+						 [1.0,  -1.5],
+						 [1.7,  -1.5],
+						 [1.7,  1.5],
+						 [1.7, 1.5],
+						 [-1.7, 1.9],
 						 [-1.7,-1.7],
 						 [1.7 , -1.7],
 						 [1.7, 1.7],
@@ -304,7 +394,7 @@ class Navigation():
 		self.threshold = 3
 
 		#new array using height and width
-		self.newarray = np.reshape(self.testgrid, (-1, self.width))
+		self.newarray = np.reshape(self.testgrid, (self.width, -1))
 		self.plot = np.array(self.newarray)
 		
 		fig = plt.figure(figsize=(10, 10))
@@ -369,23 +459,24 @@ class Navigation():
 		self.list = len(self.waypoints[0])
 
 		self.have_waypoints = True
-		rospy.loginfo(self.waypoints)
+		#rospy.loginfo(self.waypoints)
 		rospy.loginfo("Grid analysed and Waypoints set!")
 		#rospy.loginfo(self.list)
 
 
-		ax = fig.add_subplot(111)
-		ax.set_title('Occupancy Grid')
-		plt.imshow(self.plot)
-	
-		ax.set_aspect('equal')
-
-		cax = fig.add_axes([0.12, 0.1, 0.1, 0.8])
-		cax.get_xaxis().set_visible(False)
-		cax.get_yaxis().set_visible(False)
-		#cax.patch.set_alpha(0)
-		cax.set_frame_on(False)
-		plt.show()
+# 		ax = fig.add_subplot(111)
+# 		ax.set_title('Occupancy Grid')
+# 		plt.imshow(self.plot)
+# 	
+# 		ax.set_aspect('equal')
+#
+# 		cax = fig.add_axes([0.12, 0.1, 0.1, 0.8])
+# 		ax.invert_yaxis()
+# 		cax.get_xaxis().set_visible(False)
+# 		cax.get_yaxis().set_visible(False)
+# 		#cax.patch.set_alpha(0)
+# 		cax.set_frame_on(False)
+		#plt.show()
 		
 
 if __name__ == '__main__':
