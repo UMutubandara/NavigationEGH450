@@ -160,7 +160,7 @@ class Navigation():
 						self.currentwp.position.y = self.uav_pose.position.y
 						rospy.loginfo("Finished, landing!")
 
-					elif self.waypoint_counter == 11:
+					elif self.waypoint_counter == 12:
 						self.servo_msg_out.channels[7] = 1000
 						self.servopub.publish(self.servo_msg_out)
 						self.waypoint_counter += 1					
@@ -181,7 +181,7 @@ class Navigation():
 						t.transform.translation.x = 0.05
 						t.transform.translation.y = 0
 						t.transform.translation.z = -0.12
-						q = tf.transformations.quaternion_from_euler(-1.57, 0, -1.57)
+						q = tf.transformations.quaternion_from_euler(-1.31, 0, -1.57)
 						t.transform.rotation.x = q[0]
 						t.transform.rotation.y = q[1]
 						t.transform.rotation.z = q[2]
@@ -247,10 +247,23 @@ class Navigation():
 			
 			try:
 				trans = self.tfbf.lookup_transform("map", "BlackSign", timestamp, rospy.Duration(0.1))
-
-				self.currentwp.position.x = trans.transform.translation.x
-				self.currentwp.position.y = trans.transform.translation.y
-				self.currentwp.position.z = 0.7
+				x = trans.transform.translation.x
+				y = trans.transform.translation.y
+				z = 1
+				
+				if(x > 2.0):
+					x =2.0
+				elif(x< -2.0):
+					x = -2.0
+					
+				if(y > 2.0):
+					y =2.0
+				elif(y < -2.0):
+					y = -2.0
+					
+				self.currentwp.position.x = x
+				self.currentwp.position.y = y
+				self.currentwp.position.z = z
 				self.waypoint_counter -= 1
 
 				rospy.loginfo("Black target at : [ %f, %f, %f ]"%(self.currentwp.position.x, self.currentwp.position.y, self.currentwp.position.z))
@@ -269,10 +282,23 @@ class Navigation():
 			
 			try:
 				trans = self.tfbf.lookup_transform("map", "RedSign", timestamp, rospy.Duration(0.1))
-
-				self.currentwp.position.x = trans.transform.translation.x
-				self.currentwp.position.y = trans.transform.translation.y
-				self.currentwp.position.z = 0.7
+				x = trans.transform.translation.x
+				y = trans.transform.translation.y
+				z = 1.0
+				
+				if(x > 2.0):
+					x =2.0
+				elif(x< -2.0):
+					x = -2.0
+					
+				if(y > 2.0):
+					y =2.0
+				elif(y < -2.0):
+					y = -2.0
+					
+				self.currentwp.position.x = x
+				self.currentwp.position.y = y
+				self.currentwp.position.z = z
 				self.waypoint_counter -= 1
 
 				rospy.loginfo("red target at : [ %f, %f, %f ]"%(self.currentwp.position.x, self.currentwp.position.y, self.currentwp.position.z))
@@ -291,17 +317,17 @@ class Navigation():
 				trans = self.tfbf.lookup_transform("map", "YellowSign", timestamp, rospy.Duration(0.1))
 				x = trans.transform.translation.x
 				y = trans.transform.translation.y
-				z = 1
+				z = 1.0
 				
-				if(x > 1.5):
-					x =1.5
-				elif(x< -1.5):
-					x = -1.5
+				if(x > 2.0):
+					x =2.0
+				elif(x< -2.0):
+					x = -2.0
 					
-				if(y > 1.5):
-					y =1.5
-				elif(y < -1.5):
-					y = -1.5
+				if(y > 2.0):
+					y =2.0
+				elif(y < -2.0):
+					y = -2.0
 					
 					
 				self.currentwp.position.x = x
@@ -367,7 +393,7 @@ class Navigation():
 
 		#changes from the real points to occupancy grid points
 
-		waypoint_list = [		[-1.5, 1.5],
+		waypoint_list = [		[-1.5, 2.0],
 						 [-1.7, -1.5],
 						 [-0.3, -1.5],
 						 [-0.3, 1.5],
@@ -375,12 +401,13 @@ class Navigation():
 						 [1.0,  -1.5],
 						 [1.7,  -1.5],
 						 [1.7,  1.5],
-						 [1.7, 1.5],
-						 [-1.7, 1.9],
-						 [-1.7,-1.7],
-						 [1.7 , -1.7],
-						 [1.7, 1.7],
-						 [1.7, 1.7]]
+						 [1.7, 2.0],
+						 [-0.25 , 2.0],
+						 [-1.7, 2.0],
+						 [-1.7,-2.0],
+						 [1.7 , -2.0],
+						 [1.7, 2.0],
+						 [1.7, 2.0]]
 
 		for point in waypoint_list:
 			point[0] = int(round((1/self.resolution)*(point[0]+(2.5))))
